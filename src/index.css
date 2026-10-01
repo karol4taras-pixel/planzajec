@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    @apply selection:bg-[#54650F] selection:text-white;
+  }
+}
+
+/* Custom scrollbars with Dark Olive Green palette (#54650F) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3815;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #54650F;
+}
