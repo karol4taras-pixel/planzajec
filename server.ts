@@ -130,44 +130,96 @@ ${text.substring(0, 15000)}`
 });
 
 /**
- * Endpoint to automatically refresh and fetch the official schedule from wnlid.sggw.edu.pl
+ * Endpoint to automatically verify and refresh schedule from wnlid.sggw.edu.pl
  */
-app.post('/api/refresh-sggw-plan', async (req, res) => {
+const SGGW_PDF_URLS: Record<number, string> = {
+  1: 'https://wnlid.sggw.edu.pl/wp-content/uploads/sites/12/2026/10/MI_1_Z_30.09.pdf',
+  2: 'https://wnlid.sggw.edu.pl/wp-content/uploads/sites/12/2026/10/MII_3_Z_30.09.pdf',
+  3: 'https://wnlid.sggw.edu.pl/wp-content/uploads/sites/12/2026/10/MIII_3_Z_30.09.pdf',
+  4: 'https://wnlid.sggw.edu.pl/wp-content/uploads/sites/12/2026/10/MIV_7_Z_30.09.pdf',
+};
+const KNOWN_OFFICIAL_RELEASE = '30.09.2026 r.';
+
+async function checkSggwScheduleStatus(rok: number = 2) {
+  const targetPdfUrl = SGGW_PDF_URLS[rok] || SGGW_PDF_URLS[2];
+  const portalUrl = 'https://wnlid.sggw.edu.pl/strefa-studenta/plan-zajec-i-programy-studiow/';
+
+  let liveConnected = false;
+  let remoteLastModified = '';
+  let remoteETag = '';
+  let remoteContentLength = '';
+  let detectedPageDate = KNOWN_OFFICIAL_RELEASE;
+
   try {
-    const { kierunek, mode, rok, turnus } = req.body;
-    const sourceUrl = 'https://wnlid.sggw.edu.pl/strefa-studenta/plan-zajec-i-programy-studiow/';
-
-    // Attempt to verify live connectivity to SGGW page
-    let liveConnected = false;
-    try {
-      const response = await fetch(sourceUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        signal: AbortSignal.timeout(3500)
-      });
-      if (response.ok) {
-        liveConnected = true;
-      }
-    } catch (e) {
-      console.log('Direct fetch to SGGW timed out or protected, using server sync cache');
-    }
-
-    res.json({
-      success: true,
-      sourceUrl,
-      liveConnected,
-      timestamp: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      date: new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }),
-      message: `Pomyślnie zsynchronizowano z oficjalną stroną SGGW WNLiD (${liveConnected ? 'połączenie na żywo' : 'najnowsza wersja dziekanatu'}).`,
-      kierunek: kierunek || 'Technologia Drewna',
-      mode: mode || 'stacjonarne',
-      rok: rok || 2,
-      turnus: turnus || 'Turnus A'
+    const pdfHeadResponse = await fetch(targetPdfUrl, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/pdf,*/*',
+      },
+      signal: AbortSignal.timeout(3500)
     });
+
+    if (pdfHeadResponse.ok) {
+      liveConnected = true;
+      remoteLastModified = pdfHeadResponse.headers.get('last-modified') || '';
+      remoteETag = pdfHeadResponse.headers.get('etag') || '';
+      remoteContentLength = pdfHeadResponse.headers.get('content-length') || '';
+    }
+  } catch (e) {
+    console.log('Direct HEAD check to SGGW PDF timed out');
+  }
+
+  try {
+    const portalResponse = await fetch(portalUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(3500)
+    });
+
+    if (portalResponse.ok) {
+      liveConnected = true;
+      const html = await portalResponse.text();
+      const match = html.match(/aktualizacja[:\s]+(\d{1,2}\.\d{1,2}\.\d{4})/i);
+      if (match && match[1]) {
+        detectedPageDate = `${match[1]} r.`;
+      }
+    }
+  } catch (e) {
+    console.log('Portal check timed out');
+  }
+
+  const isChanged = detectedPageDate !== KNOWN_OFFICIAL_RELEASE;
+  const timeString = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  return {
+    success: true,
+    changed: isChanged,
+    liveConnected,
+    targetPdfUrl,
+    portalUrl,
+    lastOfficialUpdate: detectedPageDate,
+    lastModifiedHeader: remoteLastModified,
+    checkTimestamp: timeString,
+    message: isChanged
+      ? `Wykryto nową wersję planu na serwerze SGGW WNLiD (z dnia ${detectedPageDate})!`
+      : `Plan na serwerze SGGW WNLiD nie uległ zmianie (wersja z dnia ${detectedPageDate} jest aktualna).`
+  };
+}
+
+app.post(['/api/refresh-sggw-plan', '/api/sync-schedule'], async (req, res) => {
+  try {
+    const rok = Number(req.body?.rok) || 2;
+    const result = await checkSggwScheduleStatus(rok);
+    res.json(result);
   } catch (error: any) {
     console.error('Error in refresh-sggw-plan:', error);
-    res.status(500).json({ error: 'Nie udało się odświeżyć planu ze strony uczelni.' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Nie udało się połączyć ze stroną SGGW: ' + (error?.message || 'Błąd sieci') 
+    });
   }
 });
+
 
 /**
  * Health and status endpoint

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  ChevronLeft, ChevronRight, Plus, MapPin, User, AlertTriangle, 
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, MapPin, User, AlertTriangle, 
   CalendarPlus, Clock, X, Check, Calendar, Download, Info, CheckCircle2,
   CalendarDays
 } from 'lucide-react';
@@ -97,6 +97,22 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
   onOpenSettings,
 }) => {
   const [subView, setSubView] = useState<LibrusSubView>('tydzien');
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState<boolean>(false);
+  const [nowTime, setNowTime] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTime(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Real-time current time indicator (08:00 - 20:30)
+  const currentMinutesFrom0800 = (nowTime.getHours() * 60 + nowTime.getMinutes()) - (START_HOUR * 60);
+  const isCurrentTimeInGrid = currentMinutesFrom0800 >= 0 && currentMinutesFrom0800 <= TOTAL_MINUTES;
+  const currentIndicatorTopPx = (currentMinutesFrom0800 / SLOT_MINUTES) * SLOT_HEIGHT_PX;
+  const currentTimeFormatted = nowTime.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  const currentDayOfWeek = nowTime.getDay() === 0 ? 7 : nowTime.getDay(); // 1=Mon ... 5=Pt, 6=Sob, 7=Ndz
 
   // Year turnus is auto-determined: Rok 1 & 3 = Turnus A, Rok 2 & 4 = Turnus B
   const yearTurnus = profile.rok % 2 === 1 ? 'Turnus A' : 'Turnus B';
@@ -340,159 +356,182 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 1. TOP SUB-BAR (Dzień | Tydzień | Miesiąc)                      */}
+      {/* 1. STICKY SOLID HEADER BAR (Does not scroll with timetable)    */}
       {/* ============================================================== */}
-      <div className={`px-3 py-2 flex items-center justify-between border-b transition-colors ${
-        isDark ? 'border-[#253210] bg-[#111608]' : 'border-[#e0e6cf] bg-white'
+      <div className={`sticky top-13 z-30 transition-colors border-b shadow-xs ${
+        isDark ? 'bg-[#0d1205] border-[#253210]' : 'bg-[#f6f8f0] border-[#e0e6cf]'
       }`}>
-        <div className="flex items-center gap-3 sm:gap-5 text-sm font-semibold">
-          <button
-            onClick={() => setSubView('dzien')}
-            className={`pb-1 transition relative ${
-              subView === 'dzien'
-                ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            Dzień
-          </button>
-          <button
-            onClick={() => setSubView('tydzien')}
-            className={`pb-1 transition relative ${
-              subView === 'tydzien'
-                ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            Tydzień
-          </button>
-          <button
-            onClick={() => setSubView('miesiac')}
-            className={`pb-1 transition relative ${
-              subView === 'miesiac'
-                ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            Miesiąc
-          </button>
-        </div>
-
-        {/* Turnus Pill & Add Calendar */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ${
-            isDark ? 'bg-[#1a230d] text-[#a2c41f] border border-[#54650F]/50' : 'bg-[#eef2de] text-[#414f0b]'
-          }`}>
-            {yearTurnus}
-          </span>
-          <button
-            onClick={onOpenCalendarSync}
-            className="p-1 text-[#a2c41f] hover:text-[#cfe665] transition"
-            title="Dodaj cały plan do Kalendarza Google"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-          </button>
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* 2. DATE NAVIGATOR (< Date Range >)                             */}
-      {/* ============================================================== */}
-      <div className={`px-3 py-2 flex items-center justify-between text-xs font-bold text-[#a2c41f] border-b ${
-        isDark ? 'bg-[#0d1205] border-[#20290d]' : 'bg-[#f4f7eb] border-[#e0e6cf]'
-      }`}>
-        <button
-          onClick={handlePrev}
-          className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/5 transition"
-          title="Poprzedni"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        <div className="text-center">
-          <span className="text-xs sm:text-sm font-extrabold text-stone-100 block">
-            {subView === 'dzien'
-              ? `${DAY_FULL_NAMES[selectedDayOfWeek - 1]}, ${currentDate.getDate()} ${['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'][currentDate.getMonth()]} ${currentDate.getFullYear()}`
-              : subView === 'tydzien'
-              ? weekRangeLabel
-              : `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
-          </span>
-          {subView !== 'miesiac' && (
-            <span className={`text-[10px] font-mono font-semibold ${
-              weekZjazd ? 'text-[#a2c41f]' : 'text-stone-500'
-            }`}>
-              {weekZjazd ? `● ${weekZjazd.description}` : '○ Weekend wolny (brak zjazdu)'}
-            </span>
-          )}
-        </div>
-
-        <button
-          onClick={handleNext}
-          className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/5 transition"
-          title="Następny"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* ============================================================== */}
-      {/* 3. 7-DAY CIRCULAR DATE SELECTOR (P W Ś C P S N / 1 2 3 4 5 6 7) */}
-      {/* ============================================================== */}
-      {subView !== 'miesiac' && (
-        <div className={`border-b ${isDark ? 'border-[#253210] bg-[#111608]' : 'border-[#e0e6cf] bg-white'}`}>
-          <div className="grid grid-cols-7 text-center py-1">
-            {DAY_LETTERS.map((letter, idx) => (
-              <span
-                key={`day-letter-${idx}`}
-                className={`text-[11px] font-bold ${
-                  idx >= 4 ? 'text-[#a2c41f]' : 'text-stone-500'
-                }`}
-              >
-                {letter}
-              </span>
-            ))}
+        {/* Permanent Top Sub-bar (Dzień | Tydzień | Miesiąc | Turnus | +) */}
+        <div className="px-3 py-2 flex items-center justify-between border-b border-[#253210]/40">
+          <div className="flex items-center gap-3 sm:gap-5 text-sm font-semibold">
+            <button
+              onClick={() => setSubView('dzien')}
+              className={`pb-1 transition relative ${
+                subView === 'dzien'
+                  ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              Dzień
+            </button>
+            <button
+              onClick={() => setSubView('tydzien')}
+              className={`pb-1 transition relative ${
+                subView === 'tydzien'
+                  ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              Tydzień
+            </button>
+            <button
+              onClick={() => setSubView('miesiac')}
+              className={`pb-1 transition relative ${
+                subView === 'miesiac'
+                  ? 'text-[#a2c41f] font-extrabold border-b-2 border-[#54650F]'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              Miesiąc
+            </button>
           </div>
 
-          <div className="grid grid-cols-7 text-center pb-2">
-            {weekDays.map((d, idx) => {
-              const isSelected = formatISO(d) === formatISO(currentDate);
-              const isToday = formatISO(d) === formatISO(new Date());
-              const dayNum = d.getDay() === 0 ? 7 : d.getDay();
-              const hasZjazd = isDateInZjazd(d);
-              const dayEventsCount = (eventsByDay.get(dayNum) || []).length;
-              const hasClasses = Boolean(hasZjazd) && dayEventsCount > 0;
+          {/* Turnus Pill & Add Calendar */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ${
+              isDark ? 'bg-[#1a230d] text-[#a2c41f] border border-[#54650F]/50' : 'bg-[#eef2de] text-[#414f0b]'
+            }`}>
+              {yearTurnus}
+            </span>
+            <button
+              onClick={onOpenCalendarSync}
+              className="p-1 text-[#a2c41f] hover:text-[#cfe665] transition"
+              title="Dodaj cały plan do Kalendarza Google"
+            >
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
 
-              return (
-                <button
-                  key={`day-num-${idx}`}
-                  onClick={() => {
-                    setCurrentDate(d);
-                    setSubView('dzien');
-                  }}
-                  className="flex flex-col items-center justify-center py-0.5 group"
-                >
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition relative ${
-                      isSelected
-                        ? 'bg-[#54650F] text-white font-extrabold shadow-sm'
-                        : isToday
-                        ? 'border border-[#54650F] text-[#a2c41f]'
-                        : hasClasses
-                        ? 'text-stone-100 font-bold hover:bg-[#1a230d]'
-                        : 'text-stone-500 hover:bg-stone-800'
+        {/* Collapsible Section: Date Navigator (< Date Range >) & 7-Day Circular Selector */}
+        {subView !== 'miesiac' && (
+          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            isCalendarCollapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-60 opacity-100'
+          }`}>
+            {/* 2. DATE NAVIGATOR (< Date Range >) */}
+            <div className={`px-3 py-2 flex items-center justify-between text-xs font-bold text-[#a2c41f] border-b ${
+              isDark ? 'bg-[#0d1205] border-[#20290d]' : 'bg-[#f4f7eb] border-[#e0e6cf]'
+            }`}>
+              <button
+                onClick={handlePrev}
+                className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/5 transition"
+                title="Poprzedni"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="text-center">
+                <span className="text-xs sm:text-sm font-extrabold text-stone-100 block">
+                  {subView === 'dzien'
+                    ? `${DAY_FULL_NAMES[selectedDayOfWeek - 1]}, ${currentDate.getDate()} ${['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'][currentDate.getMonth()]} ${currentDate.getFullYear()}`
+                    : weekRangeLabel}
+                </span>
+                <span className={`text-[10px] font-mono font-semibold ${
+                  weekZjazd ? 'text-[#a2c41f]' : 'text-stone-500'
+                }`}>
+                  {weekZjazd ? `● ${weekZjazd.description}` : '○ Weekend wolny (brak zjazdu)'}
+                </span>
+              </div>
+
+              <button
+                onClick={handleNext}
+                className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/5 transition"
+                title="Następny"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 3. 7-DAY CIRCULAR DATE SELECTOR (P W Ś C P S N / 1 2 3 4 5 6 7) */}
+            <div className={`border-b ${isDark ? 'border-[#253210] bg-[#111608]' : 'border-[#e0e6cf] bg-white'}`}>
+              <div className="grid grid-cols-7 text-center py-1">
+                {DAY_LETTERS.map((letter, idx) => (
+                  <span
+                    key={`day-letter-${idx}`}
+                    className={`text-[11px] font-bold ${
+                      idx >= 4 ? 'text-[#a2c41f]' : 'text-stone-500'
                     }`}
                   >
-                    <span>{d.getDate()}</span>
-                    {hasClasses && !isSelected && (
-                      <span className="absolute -bottom-0.5 w-1.5 h-1.5 rounded-full bg-[#a2c41f]" />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+                    {letter}
+                  </span>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 text-center pb-2">
+                {weekDays.map((d, idx) => {
+                  const isSelected = formatISO(d) === formatISO(currentDate);
+                  const isToday = formatISO(d) === formatISO(new Date());
+                  const dayNum = d.getDay() === 0 ? 7 : d.getDay();
+                  const hasZjazd = isDateInZjazd(d);
+                  const dayEventsCount = (eventsByDay.get(dayNum) || []).length;
+                  const hasClasses = Boolean(hasZjazd) && dayEventsCount > 0;
+
+                  return (
+                    <button
+                      key={`day-num-${idx}`}
+                      onClick={() => {
+                        setCurrentDate(d);
+                        setSubView('dzien');
+                      }}
+                      className="flex flex-col items-center justify-center py-0.5 group"
+                    >
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition relative ${
+                          isSelected
+                            ? 'bg-[#54650F] text-white font-extrabold shadow-sm'
+                            : isToday
+                            ? 'border border-[#54650F] text-[#a2c41f]'
+                            : hasClasses
+                            ? 'text-stone-100 font-bold hover:bg-[#1a230d]'
+                            : 'text-stone-500 hover:bg-stone-800'
+                        }`}
+                      >
+                        <span>{d.getDate()}</span>
+                        {hasClasses && !isSelected && (
+                          <span className="absolute -bottom-0.5 w-1.5 h-1.5 rounded-full bg-[#a2c41f]" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Full-width Toggle Collapse Button spanning the entire screen */}
+        {subView !== 'miesiac' && (
+          <button
+            onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+            className={`w-full py-1 px-3 flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all border-b border-[#253210]/40 ${
+              isDark ? 'bg-[#111608] hover:bg-[#161d0b] text-stone-400 hover:text-[#a2c41f]' : 'bg-[#f0f4e4] hover:bg-[#e6ecd4] text-stone-600 hover:text-[#54650F]'
+            }`}
+            title={isCalendarCollapsed ? "Pokaż pełną nawigację kalendarzyka" : "Zwiń kalendarzyk (zostaw tylko pasek Dzień/Tydzień/Miesiąc)"}
+          >
+            {isCalendarCollapsed ? (
+              <>
+                <span>Pokaż kalendarz dni</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#a2c41f]" />
+              </>
+            ) : (
+              <>
+                <span>Zwiń kalendarz dni</span>
+                <ChevronUp className="w-3.5 h-3.5 text-[#a2c41f]" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
 
       {/* ============================================================== */}
       {/* 4A. DZIEŃ VIEW (Full sequential cards for the active day)       */}
@@ -540,12 +579,18 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
             <div className="space-y-2.5">
               {currentDayEvents.map((event, idx) => {
                 const color = getEventColor(event, idx);
+                const isViewingToday = formatISO(currentDate) === formatISO(nowTime);
+                const startMin = timeToMinutesFromStart(event.startTime);
+                const endMin = timeToMinutesFromStart(event.endTime);
+                const isHappeningNow = isViewingToday && currentMinutesFrom0800 >= startMin && currentMinutesFrom0800 <= endMin;
 
                 return (
                   <div
                     key={event.id}
                     onClick={() => setActiveModalEvent(event)}
-                    className={`rounded-xl p-3.5 border shadow-xs cursor-pointer transition hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between gap-2 ${color.bg} ${color.border} ${color.text}`}
+                    className={`rounded-xl p-3.5 border shadow-xs cursor-pointer transition hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between gap-2 ${
+                      isHappeningNow ? 'ring-2 ring-red-500 shadow-lg' : ''
+                    } ${color.bg} ${color.border} ${color.text}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -557,9 +602,17 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                         </h4>
                       </div>
 
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-black/30 text-white shrink-0">
-                        {event.type}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isHappeningNow && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse flex items-center gap-1 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            TRWA TERAZ
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-black/30 text-white">
+                          {event.type}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-white/20">
@@ -648,6 +701,41 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                 className="relative flex overflow-hidden border-t border-[#253210]"
                 style={{ height: `${TOTAL_GRID_HEIGHT}px` }}
               >
+                {/* Real-time horizontal line indicator moving in real time */}
+                {isCurrentTimeInGrid && (
+                  <>
+                    {/* Time badge on the left axis */}
+                    <div
+                      style={{ top: `${currentIndicatorTopPx}px` }}
+                      className="absolute left-0 w-10 sm:w-12 -translate-y-1/2 z-30 flex items-center justify-end pr-0.5 pointer-events-none"
+                    >
+                      <span className="px-1 py-0.5 rounded bg-red-600 text-white font-mono font-bold text-[8px] sm:text-[9px] shadow-sm leading-none flex items-center gap-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        {currentTimeFormatted}
+                      </span>
+                    </div>
+
+                    {/* Laser red horizontal line across timetable */}
+                    <div
+                      style={{ top: `${currentIndicatorTopPx}px` }}
+                      className="absolute left-10 sm:left-12 right-0 h-[2px] bg-red-500 z-20 pointer-events-none shadow-xs flex items-center"
+                    >
+                      {/* Highlight today's column if today is Friday, Saturday, or Sunday */}
+                      {[5, 6, 7].includes(currentDayOfWeek) && (
+                        <div 
+                          style={{
+                            left: `${((currentDayOfWeek - 5) / 3) * 100}%`,
+                            width: `${(1 / 3) * 100}%`
+                          }}
+                          className="absolute h-1 bg-red-400/40 -top-0.5 pointer-events-none flex items-center justify-center"
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-md animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
                 {/* 1. Left Time Axis */}
                 <div 
                   className="w-10 sm:w-12 shrink-0 relative select-none font-mono text-[10px] text-stone-400 border-r border-[#253210]"
@@ -666,21 +754,18 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                   })}
                 </div>
 
-                {/* 2. Background Horizontal Grid Lines (15-min and 60-min ticks) */}
+                {/* 2. Background Horizontal Grid Lines: only full hours are brighter, all 15-min lines are uniform dark */}
                 <div className="absolute inset-0 left-10 sm:left-12 pointer-events-none">
                   {Array.from({ length: TOTAL_SLOTS }).map((_, slotIdx) => {
                     const minuteFromStart = slotIdx * SLOT_MINUTES;
                     const isHourMark = minuteFromStart % 60 === 0;
-                    const isLessonBoundary = lessonMinuteBoundaries.has(minuteFromStart);
 
                     return (
                       <div
                         key={`grid-line-${slotIdx}`}
                         style={{ height: `${SLOT_HEIGHT_PX}px` }}
                         className={`w-full ${
-                          isLessonBoundary
-                            ? 'border-b border-[#a2c41f]/40 dark:border-[#a2c41f]/30'
-                            : isHourMark
+                          isHourMark
                             ? 'border-b border-[#3b4c1a] dark:border-[#42551d]'
                             : 'border-b border-[#1c260f]/20 dark:border-[#212c10]/25'
                         }`}

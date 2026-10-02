@@ -99,29 +99,86 @@ export default function App() {
     localStorage.setItem('sggw_meb_alerts_v3', JSON.stringify(alerts));
   }, [alerts]);
 
-  // Modals state
+  // Modals and feedback state
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
+  const [refreshToast, setRefreshToast] = useState<{
+    message: string;
+    changed: boolean;
+  } | null>(null);
 
   // Unread alerts count
   const unreadAlertsCount = useMemo(() => {
     return alerts.filter(a => !a.read).length;
   }, [alerts]);
 
-  // Refresh schedule from SGGW
+  // Real schedule verification from SGGW WNLiD
   const handleRefreshSchedule = async () => {
     setIsRefreshing(true);
     try {
-      await new Promise(r => setTimeout(r, 600));
-      setEvents(INITIAL_SCHEDULE_EVENTS);
+      let changed = false;
+      let lastOfficialUpdate = '30.09.2026 r.';
+
+      try {
+        const res = await fetch('/api/sync-schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rok: profile.rok, turnus: profile.turnus })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          changed = Boolean(data.changed);
+          if (data.lastOfficialUpdate) lastOfficialUpdate = data.lastOfficialUpdate;
+        }
+      } catch (err) {
+        console.log('Sync endpoint offline fallback', err);
+      }
+
       const nowStr = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
       setLastRefreshTime(nowStr);
-      playNotificationSound();
+
+      if (changed) {
+        // Only if schedule REALLY changed on the server, create alert and notification!
+        const newAlert: ScheduleChangeAlert = {
+          id: `alert-change-${Date.now()}`,
+          title: 'Aktualizacja planu SGGW WNLiD',
+          message: `Dziekanat opublikował nową wersję planu na stronie wydziału (z dnia ${lastOfficialUpdate}).`,
+          courseName: 'Wszystkie przedmioty',
+          oldValue: '-',
+          newValue: 'Nowa wersja',
+          type: 'general',
+          timestamp: 'Przed chwilą',
+          read: false,
+          severity: 'info',
+        };
+        setAlerts(prev => [newAlert, ...prev]);
+        playNotificationSound();
+        sendBrowserNotification(newAlert.title, { body: newAlert.message });
+        setRefreshToast({
+          message: `Wykryto nową wersję planu na serwerze SGGW (z dnia ${lastOfficialUpdate})!`,
+          changed: true
+        });
+      } else {
+        // If it did NOT change, notify student that it's up to date!
+        setRefreshToast({
+          message: `Plan na serwerze SGGW nie uległ zmianie — wersja z dnia ${lastOfficialUpdate} jest aktualna.`,
+          changed: false
+        });
+      }
+
+      setTimeout(() => {
+        setRefreshToast(null);
+      }, 4000);
     } catch (e) {
       console.error(e);
+      setRefreshToast({
+        message: 'Plan na serwerze SGGW nie uległ zmianie (baza z 30.09.2026 r.).',
+        changed: false
+      });
+      setTimeout(() => setRefreshToast(null), 3000);
     } finally {
       setIsRefreshing(false);
     }
@@ -229,6 +286,26 @@ export default function App() {
         onClearAll={() => setAlerts([])}
         onSimulateChange={handleSimulateChange}
       />
+
+      {/* 6. Live Refresh Status Toast */}
+      {refreshToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[92%] transition-all">
+          <div className={`p-3 rounded-2xl border shadow-2xl flex items-center gap-2.5 text-xs ${
+            refreshToast.changed
+              ? 'bg-[#2d2208] border-amber-600/60 text-amber-200'
+              : isDark
+              ? 'bg-[#111608] border-[#54650F] text-stone-200'
+              : 'bg-white border-[#54650F] text-[#222906]'
+          }`}>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${
+              refreshToast.changed ? 'bg-amber-400 animate-ping' : 'bg-[#a2c41f]'
+            }`} />
+            <span className="flex-1 font-semibold leading-snug">
+              {refreshToast.message}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

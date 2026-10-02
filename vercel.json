@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "crons": [
+    {
+      "path": "/api/sync-schedule",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
