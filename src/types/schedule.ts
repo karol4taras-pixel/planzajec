@@ -75,6 +75,8 @@ export interface ScheduleChangeAlert {
   read: boolean;
   severity: 'warning' | 'info' | 'critical';
   dateAffected?: string;
+  rok?: RokStudiow;
+  group?: string;
 }
 
 export interface StudentPreferences {

@@ -15,9 +15,56 @@ interface LibrusPlannerProps {
   onOpenCalendarSync: () => void;
   onOpenNotifications: () => void;
   onOpenSettings: () => void;
+  onUpdateProfile?: (newProfile: StudentProfile) => void;
 }
 
 type LibrusSubView = 'dzien' | 'tydzien' | 'miesiac';
+
+export type EventGroupType = 'gr1' | 'gr2' | 'all';
+
+/**
+ * Determines whether a class is for Grupa 1 (M1), Grupa 2 (M2), or the Whole Year (Cały rok / Wykład).
+ * SGGW timetable tracks: M1 on left/top, M2 on right/bottom.
+ */
+export function getEventGroupType(groupName?: string): EventGroupType {
+  if (!groupName) return 'all';
+  const norm = groupName.trim().toLowerCase();
+
+  // Explicit whole year / shared lecture across M1 & M2
+  if (
+    norm.includes('cały rok') ||
+    norm.includes('całość') ||
+    norm.includes('wszysc') ||
+    norm.includes('gr.1+2') ||
+    norm === 'meb i' ||
+    norm === 'meb ii' ||
+    norm === 'meb iii' ||
+    norm === 'meb iv'
+  ) {
+    return 'all';
+  }
+
+  // Grupa 1 / M1: "m1", "gr.1", "gr 1", "grupa 1", "l1", "ćw.gr.1"
+  const isGr1 = /\b(m1|gr\.?\s*1|grupa\s*1|l1)\b/i.test(norm) || norm.includes('m1') || norm.includes('gr.1') || norm.includes('gr 1');
+  // Grupa 2 / M2: "m2", "gr.2", "gr 2", "grupa 2", "l2", "ćw.gr.2"
+  const isGr2 = /\b(m2|gr\.?\s*2|grupa\s*2|l2)\b/i.test(norm) || norm.includes('m2') || norm.includes('gr.2') || norm.includes('gr 2');
+
+  if (isGr1 && !isGr2) return 'gr1';
+  if (isGr2 && !isGr1) return 'gr2';
+  return 'all';
+}
+
+/**
+ * Normalizes user-selected group from student profile.
+ */
+export function getUserSelectedGroup(grupa?: string): 'all' | 'gr1' | 'gr2' {
+  if (!grupa) return 'all';
+  const norm = grupa.toLowerCase();
+  if (norm.includes('wszystk')) return 'all';
+  if (norm.includes('1') || norm.includes('m1')) return 'gr1';
+  if (norm.includes('2') || norm.includes('m2')) return 'gr2';
+  return 'all';
+}
 
 const DAY_LETTERS = ['P', 'W', 'Ś', 'C', 'P', 'S', 'N'];
 const DAY_FULL_NAMES = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'];
@@ -95,6 +142,7 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
   onOpenCalendarSync,
   onOpenNotifications,
   onOpenSettings,
+  onUpdateProfile,
 }) => {
   const [subView, setSubView] = useState<LibrusSubView>('tydzien');
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState<boolean>(false);
@@ -116,6 +164,7 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
 
   // Year turnus is auto-determined: Rok 1 & 3 = Turnus A, Rok 2 & 4 = Turnus B
   const yearTurnus = profile.rok % 2 === 1 ? 'Turnus A' : 'Turnus B';
+  const userGroup = getUserSelectedGroup(profile.grupa);
 
   // Helper to format ISO date YYYY-MM-DD
   const formatISO = (d: Date): string => {
@@ -218,14 +267,100 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
     return `${start.getDate()} ${months[start.getMonth()]} – ${end.getDate()} ${months[end.getMonth()]} ${end.getFullYear()}`;
   }, [weekDays]);
 
-  // Filter events strictly for this year & zaoczne
+  // Filter events strictly for this year, zaoczne, and student's selected group
   const visibleEvents = useMemo(() => {
     return events.filter(e => {
       if (e.mode !== 'zaoczne') return false;
       if (e.rok !== profile.rok) return false;
+
+      // Group filtering: check if this class belongs to M1, M2, or Whole Year (Cały rok)
+      const eventGrp = getEventGroupType(e.group);
+      if (userGroup === 'gr1' && eventGrp === 'gr2') return false;
+      if (userGroup === 'gr2' && eventGrp === 'gr1') return false;
+
       return true;
     });
-  }, [events, profile.rok]);
+  }, [events, profile.rok, userGroup]);
+
+  // Compute parallel collision columns so overlapping group classes render side by side
+  // In SGGW PDF: M1 is on the left track, M2 is on the right track! Whole year classes span 100%!
+  const computeEventCollisions = (dayEvents: ScheduleEvent[]) => {
+    const sorted = [...dayEvents].sort((a, b) => {
+      const aStart = a.startTime.localeCompare(b.startTime);
+      if (aStart !== 0) return aStart;
+      return a.endTime.localeCompare(b.endTime);
+    });
+
+    // If user filtered to a specific single group, all its classes take full width (100%)
+    if (userGroup !== 'all') {
+      return sorted.map(evt => ({
+        event: evt,
+        colIndex: 0,
+        totalCols: 1,
+        groupType: getEventGroupType(evt.group),
+      }));
+    }
+
+    const clusters: ScheduleEvent[][] = [];
+    let currentCluster: ScheduleEvent[] = [];
+    let clusterEnd = '00:00';
+
+    for (const evt of sorted) {
+      if (currentCluster.length === 0) {
+        currentCluster.push(evt);
+        clusterEnd = evt.endTime;
+      } else {
+        if (evt.startTime < clusterEnd) {
+          currentCluster.push(evt);
+          if (evt.endTime > clusterEnd) clusterEnd = evt.endTime;
+        } else {
+          clusters.push(currentCluster);
+          currentCluster = [evt];
+          clusterEnd = evt.endTime;
+        }
+      }
+    }
+    if (currentCluster.length > 0) {
+      clusters.push(currentCluster);
+    }
+
+    const result: { event: ScheduleEvent; colIndex: number; totalCols: number; groupType: EventGroupType }[] = [];
+
+    for (const cluster of clusters) {
+      if (cluster.length === 1) {
+        // Single class (e.g. lecture or whole-year exercises): takes full width!
+        result.push({
+          event: cluster[0],
+          colIndex: 0,
+          totalCols: 1,
+          groupType: getEventGroupType(cluster[0].group),
+        });
+      } else {
+        // Overlapping classes (e.g. M1 and M2 at the same time):
+        // Sort so M1 is on the left (colIndex 0) and M2 is on the right (colIndex 1)
+        const sortedCluster = [...cluster].sort((a, b) => {
+          const aGrp = getEventGroupType(a.group);
+          const bGrp = getEventGroupType(b.group);
+          if (aGrp === 'gr1' && bGrp !== 'gr1') return -1;
+          if (bGrp === 'gr1' && aGrp !== 'gr1') return 1;
+          if (aGrp === 'gr2' && bGrp !== 'gr2') return 1;
+          if (bGrp === 'gr2' && aGrp !== 'gr2') return -1;
+          return a.startTime.localeCompare(b.startTime);
+        });
+
+        sortedCluster.forEach((evt, idx) => {
+          result.push({
+            event: evt,
+            colIndex: idx < 2 ? idx : idx % 2,
+            totalCols: 2,
+            groupType: getEventGroupType(evt.group),
+          });
+        });
+      }
+    }
+
+    return result;
+  };
 
   // Group events by day of week (1 to 7)
   const eventsByDay = useMemo(() => {
@@ -308,6 +443,51 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
     return eventsByDay.get(selectedDayOfWeek) || [];
   }, [activeDayZjazd, eventsByDay, selectedDayOfWeek]);
 
+  // Day view clusters: groups parallel group classes (e.g. M1 and M2) into side-by-side pairs!
+  const dayEventClusters = useMemo(() => {
+    if (!activeDayZjazd) return [];
+    const dayEvts = eventsByDay.get(selectedDayOfWeek) || [];
+    const sorted = [...dayEvts].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    if (userGroup !== 'all') {
+      return sorted.map(evt => [evt]);
+    }
+
+    const clusters: ScheduleEvent[][] = [];
+    let currentCluster: ScheduleEvent[] = [];
+    let clusterEnd = '00:00';
+
+    for (const evt of sorted) {
+      if (currentCluster.length === 0) {
+        currentCluster.push(evt);
+        clusterEnd = evt.endTime;
+      } else {
+        if (evt.startTime < clusterEnd) {
+          currentCluster.push(evt);
+          if (evt.endTime > clusterEnd) clusterEnd = evt.endTime;
+        } else {
+          clusters.push(currentCluster);
+          currentCluster = [evt];
+          clusterEnd = evt.endTime;
+        }
+      }
+    }
+    if (currentCluster.length > 0) {
+      clusters.push(currentCluster);
+    }
+
+    return clusters.map(cluster => {
+      if (cluster.length <= 1) return cluster;
+      return [...cluster].sort((a, b) => {
+        const aGrp = getEventGroupType(a.group);
+        const bGrp = getEventGroupType(b.group);
+        if (aGrp === 'gr1' && bGrp !== 'gr1') return -1;
+        if (bGrp === 'gr1' && aGrp !== 'gr1') return 1;
+        return 0;
+      });
+    });
+  }, [activeDayZjazd, eventsByDay, selectedDayOfWeek, userGroup]);
+
   // Month grid calculations
   const monthData = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -350,20 +530,20 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
 
   return (
     <div className={`w-full max-w-2xl mx-auto ${isDark ? 'text-stone-100' : 'text-[#222906]'} pb-10`}>
-      {/* Subtle tiny watermark header info scrolling with page */}
-      <div className="text-[10px] text-stone-500/70 font-mono text-center py-1 select-none">
-        Aktualizacja WNLiD: 30.09.2026 r. • Meblarstwo (Zaoczne)
-      </div>
-
       {/* ============================================================== */}
       {/* 1. STICKY SOLID HEADER BAR (Does not scroll with timetable)    */}
       {/* ============================================================== */}
       <div className={`sticky top-13 z-30 transition-colors border-b shadow-xs ${
         isDark ? 'bg-[#0d1205] border-[#253210]' : 'bg-[#f6f8f0] border-[#e0e6cf]'
       }`}>
-        {/* Permanent Top Sub-bar (Dzień | Tydzień | Miesiąc | Turnus | +) */}
-        <div className="px-3 py-2 flex items-center justify-between border-b border-[#253210]/40">
-          <div className="flex items-center gap-3 sm:gap-5 text-sm font-semibold">
+        {/* Connected Solid Watermark Info Banner (Stationary with Header) */}
+        <div className="text-[10px] text-stone-400 font-mono text-center py-1 border-b border-[#253210]/40 select-none bg-[#090d04]/60">
+          Aktualizacja WNLiD: 30.09.2026 r. • Meblarstwo (Zaoczne) • Rok {profile.rok}
+        </div>
+
+        {/* Permanent Top Sub-bar (Dzień | Tydzień | Miesiąc | Grupy M1/M2 | Turnus) */}
+        <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 border-b border-[#253210]/40">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-semibold">
             <button
               onClick={() => setSubView('dzien')}
               className={`pb-1 transition relative ${
@@ -396,20 +576,56 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
             </button>
           </div>
 
-          {/* Turnus Pill & Add Calendar */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ${
+          {/* Group and Turnus Selectors */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Quick Group Switcher: Wszystkie (M1+M2) | Grupa 1 | Grupa 2 */}
+            <div className={`flex items-center p-0.5 rounded-lg border text-[10px] font-bold ${
+              isDark ? 'bg-[#151c0b] border-[#253210]' : 'bg-[#eef2de] border-[#d8e0be]'
+            }`}>
+              <button
+                type="button"
+                onClick={() => onUpdateProfile && onUpdateProfile({ ...profile, grupa: 'Wszystkie grupy' })}
+                className={`px-2 py-0.5 rounded transition ${
+                  userGroup === 'all'
+                    ? 'bg-[#54650F] text-white shadow-xs'
+                    : isDark ? 'text-stone-400 hover:text-stone-200' : 'text-stone-600 hover:text-stone-900'
+                }`}
+                title="Pokaż wszystkie grupy (M1 i M2 obok siebie)"
+              >
+                Wszystkie (M1+M2)
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateProfile && onUpdateProfile({ ...profile, grupa: 'Grupa 1 (M1)' })}
+                className={`px-2 py-0.5 rounded transition ${
+                  userGroup === 'gr1'
+                    ? 'bg-[#1f618d] text-white shadow-xs'
+                    : isDark ? 'text-stone-400 hover:text-stone-200' : 'text-stone-600 hover:text-stone-900'
+                }`}
+                title="Pokaż tylko zajęcia Grupy 1 (M1)"
+              >
+                M1 (Gr 1)
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateProfile && onUpdateProfile({ ...profile, grupa: 'Grupa 2 (M2)' })}
+                className={`px-2 py-0.5 rounded transition ${
+                  userGroup === 'gr2'
+                    ? 'bg-[#b9770e] text-white shadow-xs'
+                    : isDark ? 'text-stone-400 hover:text-stone-200' : 'text-stone-600 hover:text-stone-900'
+                }`}
+                title="Pokaż tylko zajęcia Grupy 2 (M2)"
+              >
+                M2 (Gr 2)
+              </button>
+            </div>
+
+            {/* Turnus Pill */}
+            <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] sm:text-[11px] font-bold ${
               isDark ? 'bg-[#1a230d] text-[#a2c41f] border border-[#54650F]/50' : 'bg-[#eef2de] text-[#414f0b]'
             }`}>
               {yearTurnus}
             </span>
-            <button
-              onClick={onOpenCalendarSync}
-              className="p-1 text-[#a2c41f] hover:text-[#cfe665] transition"
-              title="Dodaj cały plan do Kalendarza Google"
-            >
-              <Plus className="w-5 h-5 stroke-[2.5]" />
-            </button>
           </div>
         </div>
 
@@ -576,9 +792,84 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
               )}
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {currentDayEvents.map((event, idx) => {
-                const color = getEventColor(event, idx);
+            <div className="space-y-3">
+              {dayEventClusters.map((cluster, clusterIdx) => {
+                if (cluster.length > 1) {
+                  // Two parallel classes at the same time (e.g. M1 and M2) rendered side-by-side!
+                  return (
+                    <div key={`cluster-${clusterIdx}`} className="space-y-1.5">
+                      <div className="text-[10px] font-mono font-bold text-stone-400 flex items-center gap-2 pl-1">
+                        <Clock className="w-3 h-3 text-[#a2c41f]" />
+                        <span>{cluster[0].startTime} – {cluster[0].endTime} • Zajęcia w grupach (M1 i M2 obok siebie)</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {cluster.map((event, eventIdx) => {
+                          const grpType = getEventGroupType(event.group);
+                          const color = getEventColor(event, eventIdx);
+                          const isViewingToday = formatISO(currentDate) === formatISO(nowTime);
+                          const startMin = timeToMinutesFromStart(event.startTime);
+                          const endMin = timeToMinutesFromStart(event.endTime);
+                          const isHappeningNow = isViewingToday && currentMinutesFrom0800 >= startMin && currentMinutesFrom0800 <= endMin;
+
+                          return (
+                            <div
+                              key={event.id}
+                              onClick={() => setActiveModalEvent(event)}
+                              className={`rounded-xl p-3 sm:p-3.5 border shadow-xs cursor-pointer transition hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between gap-2.5 ${
+                                isHappeningNow ? 'ring-2 ring-red-500 shadow-lg' : ''
+                              } ${color.bg} ${color.border} ${color.text}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold shadow-xs ${
+                                    grpType === 'gr1' ? 'bg-blue-600 text-white' : 'bg-amber-600 text-white'
+                                  }`}>
+                                    {grpType === 'gr1' ? 'M1 • Grupa 1' : 'M2 • Grupa 2'}
+                                  </span>
+                                  <h4 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
+                                    {event.courseName}
+                                  </h4>
+                                </div>
+
+                                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-black/30 text-white shrink-0">
+                                  {event.type}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-white/20">
+                                <div className="flex items-center gap-1.5 font-mono font-bold text-[11px]">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>{event.startTime} – {event.endTime}</span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  <span className="font-bold">{event.room}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[11px] opacity-90">
+                                <span className="truncate max-w-[150px] sm:max-w-none">
+                                  {event.instructor.replace(/prof\. dr hab\. inż\.|dr hab\. inż\.|dr inż\.|mgr inż\./, '').trim()}
+                                </span>
+                                {event.notes && (
+                                  <span className="text-[10px] font-mono bg-black/20 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                                    {event.notes}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Single class (e.g. lecture or whole-year course)
+                const event = cluster[0];
+                const grpType = getEventGroupType(event.group);
+                const color = getEventColor(event, clusterIdx);
                 const isViewingToday = formatISO(currentDate) === formatISO(nowTime);
                 const startMin = timeToMinutesFromStart(event.startTime);
                 const endMin = timeToMinutesFromStart(event.endTime);
@@ -588,15 +879,25 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                   <div
                     key={event.id}
                     onClick={() => setActiveModalEvent(event)}
-                    className={`rounded-xl p-3.5 border shadow-xs cursor-pointer transition hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between gap-2 ${
+                    className={`rounded-xl p-3.5 border shadow-xs cursor-pointer transition hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between gap-2.5 ${
                       isHappeningNow ? 'ring-2 ring-red-500 shadow-lg' : ''
                     } ${color.bg} ${color.border} ${color.text}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-black/30 text-white text-[11px] font-mono font-black flex items-center justify-center">
-                          {idx + 1}
-                        </span>
+                        {grpType === 'gr1' ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-600 text-white shadow-xs">
+                            Grupa 1 (M1)
+                          </span>
+                        ) : grpType === 'gr2' ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-600 text-white shadow-xs">
+                            Grupa 2 (M2)
+                          </span>
+                        ) : (
+                          <span className="w-5 h-5 rounded-md bg-black/30 text-white text-[11px] font-mono font-black flex items-center justify-center">
+                            {clusterIdx + 1}
+                          </span>
+                        )}
                         <h4 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
                           {event.courseName}
                         </h4>
@@ -610,7 +911,7 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                           </span>
                         )}
                         <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-black/30 text-white">
-                          {event.type}
+                          {grpType === 'all' && event.type === 'wykład' ? 'Wykład (Cały rok)' : grpType === 'all' ? 'Wspólne (Cały rok)' : event.type}
                         </span>
                       </div>
                     </div>
@@ -701,7 +1002,7 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                 className="relative flex overflow-hidden border-t border-[#253210]"
                 style={{ height: `${TOTAL_GRID_HEIGHT}px` }}
               >
-                {/* Real-time horizontal line indicator moving in real time */}
+                {/* Real-time horizontal line indicator: ONLY on the column of TODAY */}
                 {isCurrentTimeInGrid && (
                   <>
                     {/* Time badge on the left axis */}
@@ -715,24 +1016,19 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                       </span>
                     </div>
 
-                    {/* Laser red horizontal line across timetable */}
-                    <div
-                      style={{ top: `${currentIndicatorTopPx}px` }}
-                      className="absolute left-10 sm:left-12 right-0 h-[2px] bg-red-500 z-20 pointer-events-none shadow-xs flex items-center"
-                    >
-                      {/* Highlight today's column if today is Friday, Saturday, or Sunday */}
-                      {[5, 6, 7].includes(currentDayOfWeek) && (
-                        <div 
-                          style={{
-                            left: `${((currentDayOfWeek - 5) / 3) * 100}%`,
-                            width: `${(1 / 3) * 100}%`
-                          }}
-                          className="absolute h-1 bg-red-400/40 -top-0.5 pointer-events-none flex items-center justify-center"
-                        >
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-md animate-pulse" />
-                        </div>
-                      )}
-                    </div>
+                    {/* Laser red horizontal line: ONLY rendered in today's column (Piątek = 5, Sobota = 6, Niedziela = 7) */}
+                    {[5, 6, 7].includes(currentDayOfWeek) && (
+                      <div 
+                        style={{
+                          top: `${currentIndicatorTopPx}px`,
+                          left: `calc(2.5rem + ${((currentDayOfWeek - 5) / 3)} * (100% - 2.5rem))`,
+                          width: `calc((100% - 2.5rem) / 3)`
+                        }}
+                        className="absolute h-[2px] bg-red-500 z-20 pointer-events-none shadow-xs flex items-center"
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-md animate-pulse -ml-1" />
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -754,21 +1050,19 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                   })}
                 </div>
 
-                {/* 2. Background Horizontal Grid Lines: only full hours are brighter, all 15-min lines are uniform dark */}
+                {/* 2. Background Horizontal Grid Lines: ONLY on full hours (brighter and clearly visible, no lines at 15-min intervals) */}
                 <div className="absolute inset-0 left-10 sm:left-12 pointer-events-none">
                   {Array.from({ length: TOTAL_SLOTS }).map((_, slotIdx) => {
                     const minuteFromStart = slotIdx * SLOT_MINUTES;
                     const isHourMark = minuteFromStart % 60 === 0;
 
+                    if (!isHourMark) return null;
+
                     return (
                       <div
                         key={`grid-line-${slotIdx}`}
-                        style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                        className={`w-full ${
-                          isHourMark
-                            ? 'border-b border-[#3b4c1a] dark:border-[#42551d]'
-                            : 'border-b border-[#1c260f]/20 dark:border-[#212c10]/25'
-                        }`}
+                        style={{ top: `${(minuteFromStart / SLOT_MINUTES) * SLOT_HEIGHT_PX}px` }}
+                        className="absolute left-0 right-0 border-b border-[#5e782b] dark:border-[#546d24]"
                       />
                     );
                   })}
@@ -778,17 +1072,21 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                 <div className="flex-1 flex divide-x divide-[#253210] relative z-10">
                   {[5, 6, 7].map((dayNum) => {
                     const dayEvents = eventsByDay.get(dayNum) || [];
+                    const positioned = computeEventCollisions(dayEvents);
 
                     return (
                       <div 
                         key={`grid-col-${dayNum}`}
                         className="flex-1 relative h-full"
                       >
-                        {dayEvents.map((evt, idx) => {
+                        {positioned.map(({ event: evt, colIndex, totalCols, groupType }, idx) => {
                           const { top, height, durationMin } = getBlockStyles(evt.startTime, evt.endTime);
                           const color = getEventColor(evt, idx);
-                          // Calculate available text lines based on block duration
                           const maxLines = durationMin <= 45 ? 1 : durationMin <= 75 ? 2 : durationMin <= 105 ? 3 : 5;
+
+                          const isMultiCol = totalCols > 1;
+                          const widthStyle = isMultiCol ? 'calc(50% - 2px)' : 'calc(100% - 4px)';
+                          const leftStyle = isMultiCol ? (colIndex === 0 ? '1px' : 'calc(50% + 1px)') : '2px';
 
                           return (
                             <div
@@ -798,20 +1096,20 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                                 position: 'absolute',
                                 top,
                                 height,
-                                left: '2px',
-                                right: '2px',
+                                left: leftStyle,
+                                width: widthStyle,
                                 hyphens: 'auto',
                                 WebkitHyphens: 'auto',
                               }}
                               lang="pl"
                               className={`rounded-lg p-1 sm:p-1.5 border shadow-2xs cursor-pointer transition hover:brightness-110 active:scale-95 flex flex-col justify-between overflow-hidden ${color.bg} ${color.border} ${color.text}`}
-                              title={`${evt.courseName} (${evt.startTime} - ${evt.endTime})`}
+                              title={`${evt.courseName} (${evt.startTime} - ${evt.endTime}) • ${groupType === 'gr1' ? 'Grupa 1 (M1)' : groupType === 'gr2' ? 'Grupa 2 (M2)' : 'Cały rok'}`}
                             >
-                              {/* Subject title: wraps subsequent words to lower lines when block is tall enough, no ellipsis needed */}
+                              {/* Subject title */}
                               <p
                                 style={{
                                   display: '-webkit-box',
-                                  WebkitLineClamp: maxLines,
+                                  WebkitLineClamp: isMultiCol ? Math.min(2, maxLines) : maxLines,
                                   WebkitBoxOrient: 'vertical',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -820,19 +1118,29 @@ export const LibrusPlanner: React.FC<LibrusPlannerProps> = ({
                                   wordBreak: 'break-word',
                                   overflowWrap: 'break-word',
                                 }}
-                                className="text-[9.5px] sm:text-[11px] font-bold leading-[1.18] tracking-tight"
+                                className={`${isMultiCol ? 'text-[8.5px] sm:text-[9.5px]' : 'text-[9.5px] sm:text-[11px]'} font-bold leading-[1.15] tracking-tight`}
                               >
                                 {formatCourseNameForDisplay(evt.courseName)}
                               </p>
 
-                              {/* Time badge: showing start time - end time, anchored at bottom */}
-                              <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-mono pt-0.5 border-t border-white/20 leading-none shrink-0 mt-auto">
+                              {/* Time badge + Group tag */}
+                              <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-mono pt-0.5 border-t border-white/20 leading-none shrink-0 mt-auto">
                                 <span className="font-semibold tracking-tighter truncate">
                                   {evt.startTime} - {evt.endTime}
                                 </span>
-                                <span className="uppercase text-[7px] sm:text-[8px] px-1 py-0.2 rounded bg-black/25 font-bold shrink-0 ml-0.5">
-                                  {evt.type === 'wykład' ? 'Wyk' : evt.type === 'ćwiczenia' ? 'Ćw' : 'Lab'}
-                                </span>
+                                {groupType === 'gr1' ? (
+                                  <span className="uppercase text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded bg-blue-600/90 text-white font-extrabold shrink-0 ml-0.5 shadow-2xs">
+                                    M1
+                                  </span>
+                                ) : groupType === 'gr2' ? (
+                                  <span className="uppercase text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded bg-amber-600/90 text-white font-extrabold shrink-0 ml-0.5 shadow-2xs">
+                                    M2
+                                  </span>
+                                ) : (
+                                  <span className="uppercase text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded bg-black/30 text-white/90 font-medium shrink-0 ml-0.5">
+                                    {evt.type === 'wykład' ? 'Wyk' : 'Wspólne'}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );

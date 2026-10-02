@@ -46,7 +46,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-emerald-300" />
               <h2 className="text-lg font-bold tracking-tight">
-                {isInitialSetup ? 'Witaj w Planie SGGW WTD!' : 'Twój profil studenta'}
+                {isInitialSetup ? 'Witaj w Planie WTD!' : 'Twój profil studenta'}
               </h2>
             </div>
             <p className="text-xs text-emerald-100/80 mt-1">
@@ -148,26 +148,76 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Rok Studiów */}
+          {/* 3. Rok i Semestr Studiów */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">
-              3. Rok studiów
+              3. Rok i Semestr studiów
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {([1, 2, 3, 4] as RokStudiow[]).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRok(r)}
-                  className={`py-2.5 px-3 rounded-xl border text-center transition font-semibold text-sm ${
-                    rok === r
-                      ? 'border-[#2d6a4f] bg-[#2d6a4f] text-white shadow-sm'
-                      : 'border-stone-200 hover:border-stone-300 bg-stone-50/50 text-stone-700'
-                  }`}
-                >
-                  Rok {r}
-                </button>
-              ))}
+            <div className="space-y-2">
+              {[
+                { r: 1, zimowySem: 1, letniSem: 2, turnus: 'Turnus A' as const },
+                { r: 2, zimowySem: 3, letniSem: 4, turnus: 'Turnus B' as const },
+                { r: 3, zimowySem: 5, letniSem: 6, turnus: 'Turnus A' as const },
+                { r: 4, zimowySem: 7, letniSem: null, turnus: 'Turnus B' as const },
+              ].map(({ r, zimowySem, letniSem, turnus: t }) => {
+                const isSelected = rok === r;
+
+                return (
+                  <div key={`modal-rok-${r}`} className="p-2.5 rounded-xl border border-stone-200 bg-stone-50/60">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-stone-800">
+                        Rok {r} • <span className="font-mono text-emerald-800 font-semibold">{t}</span>
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.2 rounded-full">
+                          Twój aktywny rok
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Semestr Zimowy: AKTYWNY */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRok(r as RokStudiow);
+                          setTurnus(t);
+                        }}
+                        className={`py-2 px-3 rounded-lg border text-left text-xs font-bold transition flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#1b4332] text-white border-[#1b4332] shadow-sm'
+                            : 'bg-white text-stone-800 border-stone-300 hover:border-emerald-600'
+                        }`}
+                      >
+                        <div>
+                          <span>Semestr {zimowySem} (Zimowy)</span>
+                          <span className="block text-[10px] font-normal opacity-85">Plan dostępny</span>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+
+                      {/* Semestr Letni: CIEMNY, NIE DO KLIKNIĘCIA */}
+                      {letniSem !== null ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="py-2 px-3 rounded-lg border border-stone-700 bg-[#0d1205] text-stone-400 cursor-not-allowed opacity-50 text-left text-xs select-none"
+                          title="Semestr letni nie został jeszcze opublikowany przez dziekanat"
+                        >
+                          <div>
+                            <span className="line-through text-stone-300">Semestr {letniSem} (Letni)</span>
+                            <span className="block text-[10px] text-amber-400 font-mono">Brak planu</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="py-2 px-3 rounded-lg border border-dashed border-stone-300 text-stone-400 text-center text-xs flex items-center justify-center font-mono">
+                          Semestr dyplomowy
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -212,16 +262,16 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           {/* 5. Grupa ćwiczeniowa / laboratoryjna */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">
-              4. Grupa laboratoryjna (opcjonalnie)
+              4. Grupa ćwiczeniowa (M1 / M2)
             </label>
             <div className="grid grid-cols-3 gap-2 text-xs">
-              {['Wszystkie', 'Grupa L1', 'Grupa L2'].map((g) => (
+              {['Wszystkie grupy', 'Grupa 1 (M1)', 'Grupa 2 (M2)'].map((g) => (
                 <button
                   key={g}
                   type="button"
                   onClick={() => setGrupa(g)}
-                  className={`py-2 px-2.5 rounded-lg border font-medium transition ${
-                    grupa === g
+                  className={`py-2 px-2.5 rounded-lg border font-bold transition ${
+                    grupa === g || (g === 'Wszystkie grupy' && (!grupa || grupa === 'Wszystkie'))
                       ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
                       : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-stone-300'
                   }`}

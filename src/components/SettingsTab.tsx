@@ -83,41 +83,75 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
         <div className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-stone-300 mb-1.5">
-              Wybierz aktualny rok:
+            <label className="block text-xs font-bold text-stone-300 mb-2">
+              Wybierz rok i semestr studiów:
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {([1, 2, 3, 4] as RokStudiow[]).map((r) => {
+            <div className="space-y-2">
+              {[
+                { r: 1, zimowySem: 1, letniSem: 2, turnus: 'Turnus A' },
+                { r: 2, zimowySem: 3, letniSem: 4, turnus: 'Turnus B' },
+                { r: 3, zimowySem: 5, letniSem: 6, turnus: 'Turnus A' },
+                { r: 4, zimowySem: 7, letniSem: null, turnus: 'Turnus B' },
+              ].map(({ r, zimowySem, letniSem, turnus: t }) => {
                 const isSelected = profile.rok === r;
-                const turnus = r % 2 === 1 ? 'Turnus A' : 'Turnus B';
-                const sem = r === 1 ? 1 : r === 2 ? 3 : r === 3 ? 5 : 7;
+
                 return (
-                  <button
-                    key={`set-rok-${r}`}
-                    type="button"
-                    onClick={() => handleYearChange(r)}
-                    className={`p-3 rounded-xl border text-left transition ${
-                      isSelected
-                        ? 'bg-[#54650F] border-[#6c8213] text-white font-bold shadow-md shadow-[#54650F]/20'
-                        : isDarkTheme
-                          ? 'bg-[#161d0b] border-[#253210] text-stone-300 hover:bg-[#1f280f]'
-                          : 'bg-[#f4f7eb] border-[#e0e6cf] text-[#222906] hover:bg-[#eef2de]'
-                    }`}
-                  >
-                    <div className="text-sm font-extrabold">Rok {r}</div>
-                    <div className="text-[11px] opacity-90 mt-0.5">Semestr {sem}</div>
-                    <div className={`mt-2 text-[10px] font-mono px-1.5 py-0.5 rounded inline-block font-bold ${
-                      isSelected ? 'bg-black/30 text-white' : 'bg-[#0d1205] text-[#a2c41f] border border-[#54650F]/40'
-                    }`}>
-                      {turnus}
+                  <div key={`set-rok-${r}`} className="p-2.5 rounded-xl border border-[#253210] bg-[#141b0b]">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-stone-200">
+                        Rok {r} • <span className="font-mono text-[#a2c41f] font-semibold">{t}</span>
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-bold text-[#a2c41f] bg-[#23310d] px-2 py-0.2 rounded-full border border-[#54650F]/50">
+                          Aktywny rok
+                        </span>
+                      )}
                     </div>
-                  </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Semestr Zimowy: AKTYWNY */}
+                      <button
+                        type="button"
+                        onClick={() => handleYearChange(r as RokStudiow)}
+                        className={`py-2 px-3 rounded-lg border text-left text-xs font-bold transition flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#54650F] text-white border-[#6c8213] shadow-sm'
+                            : 'bg-[#18200d] text-stone-300 border-[#253210] hover:border-[#54650F]'
+                        }`}
+                      >
+                        <div>
+                          <span>Semestr {zimowySem} (Zimowy)</span>
+                          <span className="block text-[10px] font-normal text-stone-400">Plan dostępny</span>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+
+                      {/* Semestr Letni: CIEMNY, NIE DO KLIKNIĘCIA */}
+                      {letniSem !== null ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="py-2 px-3 rounded-lg border border-stone-800 bg-[#090d04] text-stone-500 cursor-not-allowed opacity-50 text-left text-xs select-none"
+                          title="Semestr letni nie został jeszcze opublikowany przez dziekanat"
+                        >
+                          <div>
+                            <span className="line-through text-stone-400">Semestr {letniSem} (Letni)</span>
+                            <span className="block text-[10px] text-amber-500/80 font-mono">Brak planu</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="py-2 px-3 rounded-lg border border-dashed border-[#253210] text-stone-500 text-center text-xs flex items-center justify-center font-mono">
+                          Semestr dyplomowy
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
 
             <p className="text-[11px] text-stone-400 mt-2 font-mono">
-              💡 Zgodnie z harmonogramem WNLiD: Rok I i III to Turnus A, natomiast Rok II i IV to Turnus B.
+              💡 Zgodnie z harmonogramem WTD: Rok I i III to Turnus A, natomiast Rok II i IV to Turnus B.
             </p>
           </div>
 
@@ -127,8 +161,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               Twoja grupa ćwiczeniowa:
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {['Wszystkie', 'Grupa 1 (M1)', 'Grupa 2 (M2)'].map((g) => {
-                const isSelected = profile.grupa === g || (g === 'Wszystkie' && !profile.grupa);
+              {['Wszystkie grupy', 'Grupa 1 (M1)', 'Grupa 2 (M2)'].map((g) => {
+                const isSelected = profile.grupa === g || (g === 'Wszystkie grupy' && (!profile.grupa || profile.grupa === 'Wszystkie'));
                 return (
                   <button
                     key={`set-gr-${g}`}

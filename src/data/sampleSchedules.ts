@@ -265,7 +265,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     notes: 'MEB II'
   },
 
-  // SOBOTA ROK II
+  // SOBOTA ROK II (Brak podziału na grupy - cały rok razem)
   {
     id: 'meb2-sob-1',
     courseName: 'Fizyka naturalnych materiałów włóknistych',
@@ -278,7 +278,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.007 (Hala)',
     building: 'Budynek 34 (Hala technologiczna)',
     instructor: 'dr hab. inż. P. Mańkowski',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Laboratoria w Hali Maszyn'
@@ -295,7 +295,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 'SPNJO (Lektorat)',
     building: 'Studium Praktycznej Nauki Języków Obcych',
     instructor: 'Lektor SPNJO',
-    group: 'MEB II',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Język angielski / niemiecki'
@@ -312,7 +312,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.1-43',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. G. Koczan',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Laboratorium metrologiczne'
@@ -329,13 +329,13 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.2-49',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. J. Szadkowski',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Zjazdy: 9-11 X, 23-25 X, 13-15 XI, 27-29 XI, 11-13 XII'
   },
 
-  // NIEDZIELA ROK II
+  // NIEDZIELA ROK II (Brak podziału na grupy - cały rok razem)
   {
     id: 'meb2-nd-1',
     courseName: 'Mechanika techniczna I',
@@ -348,7 +348,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.2-20',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr hab. inż. K. Roman',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Zajęcia w II połowie semestru'
@@ -365,7 +365,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.0-41',
     building: 'Budynek 34 (WTD)',
     instructor: 'mgr sztuki A. Jegorow',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Pracownia rysunku i form wzorniczych'
@@ -382,7 +382,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.2-20',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. R. Auriga',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Ćwiczenia audytoryjne i obliczeniowe'
@@ -399,16 +399,16 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.1-37',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. M. Cyrankowski',
-    group: 'MEB II ćw.gr.1',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus B',
     notes: 'Laboratorium termodynamiki'
   },
 
   // =========================================================================
-  // ROK I (semestr 1) - MEBLARSTWO ZAOCZNE - TURNUS A
+  // ROK I (semestr 1) - MEBLARSTWO ZAOCZNE - TURNUS A (Zgodnie z PDF SGGW WNLiD)
   // =========================================================================
-  // PIĄTEK
+  // PIĄTEK (Wykłady wspólne dla całego roku - M1 i M2)
   {
     id: 'meb1-pt-1',
     courseName: 'Ochrona własności intelektualnej',
@@ -417,11 +417,11 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     type: 'wykład',
     dayOfWeek: 5,
     startTime: '08:15',
-    endTime: '09:45',
+    endTime: '09:00',
     room: 's.A-I',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr M. Niedbała',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -432,12 +432,12 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'wykład',
     dayOfWeek: 5,
-    startTime: '09:45',
-    endTime: '11:15',
+    startTime: '09:15',
+    endTime: '10:45',
     room: 's.A-I',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr J. Wachowicz',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -448,12 +448,12 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'wykład',
     dayOfWeek: 5,
-    startTime: '11:30',
-    endTime: '13:30',
+    startTime: '11:00',
+    endTime: '12:30',
     room: 's.A-I',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. A. Różańska',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -464,12 +464,12 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'wykład',
     dayOfWeek: 5,
-    startTime: '13:45',
-    endTime: '15:15',
+    startTime: '12:45',
+    endTime: '14:15',
     room: 's.A-I (7 h)',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. P. Czarniak',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -480,12 +480,12 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'wykład',
     dayOfWeek: 5,
-    startTime: '15:30',
-    endTime: '17:30',
+    startTime: '14:30',
+    endTime: '16:30',
     room: 's.A-III',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. R. Toczyłowska-Mamińska',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -496,46 +496,78 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'wykład',
     dayOfWeek: 5,
-    startTime: '17:45',
-    endTime: '19:45',
+    startTime: '17:15',
+    endTime: '19:15',
     room: 's.2-43',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. T. Kłosińska',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
 
-  // SOBOTA ROK I
+  // SOBOTA ROK I (Ćwiczenia w grupach M1 i M2 oraz Matematyka wspólna)
   {
-    id: 'meb1-sob-1',
-    courseName: 'Grafika inżynierska w systemach CAD',
-    kierunek: 'Meblarstwo',
-    rok: 1,
-    type: 'ćwiczenia',
-    dayOfWeek: 6,
-    startTime: '08:15',
-    endTime: '10:30',
-    room: 's.1-14',
-    building: 'Budynek 34 (WTD)',
-    instructor: 'dr inż. G. Koczan',
-    group: 'MEB I ćw.gr.1',
-    mode: 'zaoczne',
-    turnus: 'Turnus A'
-  },
-  {
-    id: 'meb1-sob-2',
+    id: 'meb1-sob-1-m1',
     courseName: 'Rysunek techniczny',
     kierunek: 'Meblarstwo',
     rok: 1,
     type: 'ćwiczenia',
     dayOfWeek: 6,
-    startTime: '10:45',
-    endTime: '12:45',
+    startTime: '09:00',
+    endTime: '11:30',
     room: 's.1-28',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. P. Czarniak',
-    group: 'MEB I ćw.gr.1',
+    group: 'M1',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb1-sob-1-m2',
+    courseName: 'Grafika inżynierska w systemach CAD',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '09:00',
+    endTime: '11:30',
+    room: 's.1-14',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. G. Koczan',
+    group: 'M2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb1-sob-2-m1',
+    courseName: 'Grafika inżynierska w systemach CAD',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '11:45',
+    endTime: '14:00',
+    room: 's.1-14',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. G. Koczan',
+    group: 'M1',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb1-sob-2-m2',
+    courseName: 'Rysunek techniczny',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '11:45',
+    endTime: '14:00',
+    room: 's.1-28',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. P. Czarniak',
+    group: 'M2',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -546,17 +578,18 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     rok: 1,
     type: 'ćwiczenia',
     dayOfWeek: 6,
-    startTime: '13:00',
-    endTime: '15:15',
+    startTime: '14:00',
+    endTime: '15:30',
     room: 's.2-20',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr J. Wachowicz',
-    group: 'MEB I ćw.gr.1+2',
+    group: 'Cały rok',
     mode: 'zaoczne',
-    turnus: 'Turnus A'
+    turnus: 'Turnus A',
+    notes: 'MEB I ćw.gr.1+2'
   },
   {
-    id: 'meb1-sob-4',
+    id: 'meb1-sob-4-m1',
     courseName: 'Technologie informatyczne',
     kierunek: 'Meblarstwo',
     rok: 1,
@@ -567,28 +600,60 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.2-19',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. J. Biernacka',
-    group: 'MEB I ćw.gr.1',
+    group: 'M1',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
   {
-    id: 'meb1-sob-5',
+    id: 'meb1-sob-4-m2',
     courseName: 'Anatomia drewna',
     kierunek: 'Meblarstwo',
     rok: 1,
     type: 'ćwiczenia',
     dayOfWeek: 6,
-    startTime: '17:45',
-    endTime: '19:45',
+    startTime: '15:30',
+    endTime: '17:30',
     room: 's.2-42',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. T. Kłosińska',
-    group: 'MEB I ćw.gr.1',
+    group: 'M2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb1-sob-5-m1',
+    courseName: 'Anatomia drewna',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '17:30',
+    endTime: '19:30',
+    room: 's.2-42',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. T. Kłosińska',
+    group: 'M1',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb1-sob-5-m2',
+    courseName: 'Technologie informatyczne',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '17:30',
+    endTime: '19:30',
+    room: 's.2-19',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. J. Biernacka',
+    group: 'M2',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
 
-  // NIEDZIELA ROK I
+  // NIEDZIELA ROK I (Wykład Chemia wspólny oraz ćwiczenia Chemia / Fizyka w grupach M1 i M2)
   {
     id: 'meb1-nd-1',
     courseName: 'Chemia',
@@ -601,12 +666,12 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.A-I',
     building: 'Budynek 34 (WTD)',
     instructor: 'prof. dr hab. A. Radomski',
-    group: 'MEB I',
+    group: 'Cały rok',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
   {
-    id: 'meb1-nd-2',
+    id: 'meb1-nd-2-m1',
     courseName: 'Chemia',
     kierunek: 'Meblarstwo',
     rok: 1,
@@ -617,13 +682,30 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 's.2-46',
     building: 'Budynek 34 (WTD)',
     instructor: 'dr inż. J. Szadkowski / dr M. Marchwicka',
-    group: 'MEB I ćw.gr.1',
+    group: 'M1',
     mode: 'zaoczne',
     turnus: 'Turnus A',
-    notes: 'Zjazdy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
+    notes: 'Terminy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
   },
   {
-    id: 'meb1-nd-3',
+    id: 'meb1-nd-2-m2',
+    courseName: 'Fizyka',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 7,
+    startTime: '10:15',
+    endTime: '12:45',
+    room: 'sale Kat.Fiz.',
+    building: 'Katedra Fizyki SGGW',
+    instructor: 'dr inż. R. Toczyłowska-Mamińska',
+    group: 'M2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A',
+    notes: 'Terminy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
+  },
+  {
+    id: 'meb1-nd-3-m1',
     courseName: 'Fizyka',
     kierunek: 'Meblarstwo',
     rok: 1,
@@ -634,10 +716,27 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     room: 'sale Kat.Fiz.',
     building: 'Katedra Fizyki SGGW',
     instructor: 'dr inż. R. Toczyłowska-Mamińska',
-    group: 'MEB I ćw.gr.1',
+    group: 'M1',
     mode: 'zaoczne',
     turnus: 'Turnus A',
-    notes: 'Zjazdy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
+    notes: 'Terminy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
+  },
+  {
+    id: 'meb1-nd-3-m2',
+    courseName: 'Chemia',
+    kierunek: 'Meblarstwo',
+    rok: 1,
+    type: 'ćwiczenia',
+    dayOfWeek: 7,
+    startTime: '13:00',
+    endTime: '15:30',
+    room: 's.2-46',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. J. Szadkowski / dr M. Marchwicka',
+    group: 'M2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A',
+    notes: 'Terminy: 2-4 X, 16-18 X, 06-08 XI, 20-22 XI, 04-06 XII'
   },
 
   // =========================================================================
@@ -778,6 +877,22 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     notes: 'Zajęcia w dniu 03.10.2026 r.'
   },
   {
+    id: 'meb3-sob-2-g2',
+    courseName: 'Obrabiarki stosowane w meblarstwie',
+    kierunek: 'Meblarstwo',
+    rok: 3,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '12:30',
+    endTime: '14:30',
+    room: 's.Hala-015',
+    building: 'Hala Technologiczna',
+    instructor: 'dr inż. P. Czarniak',
+    group: 'MEB III ćw.gr.2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
     id: 'meb3-sob-3',
     courseName: 'Obrabiarki stosowane w meblarstwie',
     kierunek: 'Meblarstwo',
@@ -790,6 +905,22 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     building: 'Hala Technologiczna',
     instructor: 'dr inż. P. Czarniak',
     group: 'MEB III ćw.gr.1',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb3-sob-3-g2',
+    courseName: 'Konstrukcje i technologie mebli skrzyniowych',
+    kierunek: 'Meblarstwo',
+    rok: 3,
+    type: 'ćwiczenia',
+    dayOfWeek: 6,
+    startTime: '14:45',
+    endTime: '17:30',
+    room: 's.1-36',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'prof. dr hab. inż. P. Beer',
+    group: 'MEB III ćw.gr.2',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -813,6 +944,22 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     notes: 'Zjazdy: 1, 2, 4, 5, 7'
   },
   {
+    id: 'meb3-nd-1-g2',
+    courseName: 'Podstawy technologii tworzyw drzewnych I',
+    kierunek: 'Meblarstwo',
+    rok: 3,
+    type: 'ćwiczenia',
+    dayOfWeek: 7,
+    startTime: '08:15',
+    endTime: '12:00',
+    room: 's.Hala-05',
+    building: 'Hala Technologiczna',
+    instructor: 'dr hab. inż. P. Borysiuk / dr inż. E. Małachowska',
+    group: 'MEB III ćw.gr.2',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
     id: 'meb3-nd-2',
     courseName: 'Podstawy technologii tworzyw drzewnych I',
     kierunek: 'Meblarstwo',
@@ -825,6 +972,22 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
     building: 'Hala Technologiczna',
     instructor: 'dr hab. inż. P. Borysiuk / dr inż. E. Małachowska',
     group: 'MEB III ćw.gr.1',
+    mode: 'zaoczne',
+    turnus: 'Turnus A'
+  },
+  {
+    id: 'meb3-nd-2-g2',
+    courseName: 'Ochrona materiałów drzewnych w meblarstwie',
+    kierunek: 'Meblarstwo',
+    rok: 3,
+    type: 'ćwiczenia',
+    dayOfWeek: 7,
+    startTime: '12:30',
+    endTime: '16:30',
+    room: 's.2-35',
+    building: 'Budynek 34 (WTD)',
+    instructor: 'dr inż. I. Betlej',
+    group: 'MEB III ćw.gr.2',
     mode: 'zaoczne',
     turnus: 'Turnus A'
   },
@@ -1102,7 +1265,7 @@ export const INITIAL_SCHEDULE_EVENTS: ScheduleEvent[] = [
 export const INITIAL_NOTIFICATIONS: ScheduleChangeAlert[] = [
   {
     id: 'notif-sggw-1',
-    title: 'Harmonogram zjazdów WNLiD 2026/2027',
+    title: 'Harmonogram zjazdów WTD 2026/2027',
     message: 'Przypomnienie: Rok I i III studiuje w Turnusie A, a Rok II i IV w Turnusie B. Zjazdy odbywają się co 2 tygodnie.',
     courseName: 'Harmonogram ogólny',
     oldValue: '-',
@@ -1111,6 +1274,21 @@ export const INITIAL_NOTIFICATIONS: ScheduleChangeAlert[] = [
     timestamp: 'Dzisiaj, 08:00',
     read: false,
     severity: 'info'
+  },
+  {
+    id: 'notif-sggw-rok1',
+    title: 'Zmiana sali: Rysunek techniczny (M1)',
+    message: 'Ćwiczenia z Rysunku technicznego dla Grupy 1 (M1) w sobotę odbywają się w sali s.1-28 (WTD).',
+    courseName: 'Rysunek techniczny',
+    oldValue: 's.1-14',
+    newValue: 's.1-28',
+    type: 'room_change',
+    timestamp: 'Wczoraj, 18:00',
+    read: false,
+    severity: 'info',
+    dateAffected: 'Sobota',
+    rok: 1,
+    group: 'M1'
   },
   {
     id: 'notif-sggw-2',
@@ -1123,7 +1301,8 @@ export const INITIAL_NOTIFICATIONS: ScheduleChangeAlert[] = [
     timestamp: 'Wczoraj, 16:30',
     read: false,
     severity: 'warning',
-    dateAffected: 'Piątek'
+    dateAffected: 'Piątek',
+    rok: 2
   },
   {
     id: 'notif-sggw-3',
@@ -1135,6 +1314,8 @@ export const INITIAL_NOTIFICATIONS: ScheduleChangeAlert[] = [
     type: 'room_change',
     timestamp: '2 dni temu',
     read: true,
-    severity: 'info'
+    severity: 'info',
+    dateAffected: 'Sobota',
+    rok: 2
   }
 ];

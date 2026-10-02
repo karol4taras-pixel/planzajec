@@ -33,14 +33,14 @@ export const LibrusHeader: React.FC<LibrusHeaderProps> = ({
         className="flex items-center gap-2 text-left group"
         title="Kliknij, aby zmienić rok lub grupę"
       >
-        <div className="w-8 h-8 rounded-xl bg-[#54650F] text-white flex items-center justify-center shadow-xs border border-[#6b8014]/40">
-          <TreePine className="w-4 h-4 text-[#e6f2b6]" />
+        <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#0d1205] shadow-xs border border-[#6b8014]/40 flex items-center justify-center shrink-0">
+          <img src="/wtd-logo.png" alt="WTD 80" className="w-full h-full object-cover" />
         </div>
 
         <div>
           <div className="flex items-center gap-1.5 leading-none">
             <span className="font-extrabold text-sm sm:text-base tracking-tight text-stone-100 group-hover:text-[#a2c41f] transition">
-              Meblarstwo SGGW
+              Meblarstwo WTD
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#a2c41f] transition" />
           </div>

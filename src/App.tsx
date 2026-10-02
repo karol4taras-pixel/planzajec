@@ -64,11 +64,11 @@ export default function App() {
 
   // Schedule Events (from official SGGW data)
   const [events, setEvents] = useState<ScheduleEvent[]>(() => {
-    const saved = localStorage.getItem('sggw_meb_events_v4');
+    const saved = localStorage.getItem('sggw_meb_events_v6');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_SCHEDULE_EVENTS.length) {
           return parsed;
         }
       } catch (e) {
@@ -79,12 +79,12 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('sggw_meb_events_v4', JSON.stringify(events));
+    localStorage.setItem('sggw_meb_events_v6', JSON.stringify(events));
   }, [events]);
 
   // Notifications / Alerts
   const [alerts, setAlerts] = useState<ScheduleChangeAlert[]>(() => {
-    const saved = localStorage.getItem('sggw_meb_alerts_v3');
+    const saved = localStorage.getItem('sggw_meb_alerts_v4');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -96,7 +96,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('sggw_meb_alerts_v3', JSON.stringify(alerts));
+    localStorage.setItem('sggw_meb_alerts_v4', JSON.stringify(alerts));
   }, [alerts]);
 
   // Modals and feedback state
@@ -110,10 +110,10 @@ export default function App() {
     changed: boolean;
   } | null>(null);
 
-  // Unread alerts count
+  // Unread alerts count strictly for student's year or general faculty notices
   const unreadAlertsCount = useMemo(() => {
-    return alerts.filter(a => !a.read).length;
-  }, [alerts]);
+    return alerts.filter(a => !a.read && (a.rok === undefined || a.rok === profile.rok)).length;
+  }, [alerts, profile.rok]);
 
   // Real schedule verification from SGGW WNLiD
   const handleRefreshSchedule = async () => {
@@ -144,9 +144,9 @@ export default function App() {
         // Only if schedule REALLY changed on the server, create alert and notification!
         const newAlert: ScheduleChangeAlert = {
           id: `alert-change-${Date.now()}`,
-          title: 'Aktualizacja planu SGGW WNLiD',
-          message: `Dziekanat opublikował nową wersję planu na stronie wydziału (z dnia ${lastOfficialUpdate}).`,
-          courseName: 'Wszystkie przedmioty',
+          title: `Aktualizacja planu dla Roku ${profile.rok}`,
+          message: `Dziekanat opublikował nową wersję planu dla Roku ${profile.rok} (z dnia ${lastOfficialUpdate}).`,
+          courseName: `Plan Roku ${profile.rok}`,
           oldValue: '-',
           newValue: 'Nowa wersja',
           type: 'general',
@@ -158,13 +158,13 @@ export default function App() {
         playNotificationSound();
         sendBrowserNotification(newAlert.title, { body: newAlert.message });
         setRefreshToast({
-          message: `Wykryto nową wersję planu na serwerze SGGW (z dnia ${lastOfficialUpdate})!`,
+          message: `Zaktualizowano plan dla Twojego roku (Rok ${profile.rok}, ${lastOfficialUpdate})!`,
           changed: true
         });
       } else {
         // If it did NOT change, notify student that it's up to date!
         setRefreshToast({
-          message: `Plan na serwerze SGGW nie uległ zmianie — wersja z dnia ${lastOfficialUpdate} jest aktualna.`,
+          message: `Plan dla Roku ${profile.rok} na serwerze SGGW nie uległ zmianie (wersja z dnia ${lastOfficialUpdate} jest aktualna).`,
           changed: false
         });
       }
@@ -175,7 +175,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
       setRefreshToast({
-        message: 'Plan na serwerze SGGW nie uległ zmianie (baza z 30.09.2026 r.).',
+        message: `Plan dla Roku ${profile.rok} jest aktualny (baza z 30.09.2026 r.).`,
         changed: false
       });
       setTimeout(() => setRefreshToast(null), 3000);
@@ -184,20 +184,30 @@ export default function App() {
     }
   };
 
-  // Simulate Room Change Alert
+  // Simulate Room Change Alert specifically for student's current year & courses
   const handleSimulateChange = () => {
+    // Pick an event strictly from user's current year and courses
+    const studentEvents = events.filter(e => e.rok === profile.rok);
+    const targetEvent = studentEvents[Math.floor(Math.random() * studentEvents.length)] || studentEvents[0];
+    const course = targetEvent ? targetEvent.courseName : 'Maszynoznawstwo';
+    const oldRoom = targetEvent ? targetEvent.room : 's.A-I';
+    const newRoom = oldRoom === 's.1-44' ? 's.2-20' : 's.1-44';
+    const dayNames = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'];
+    const day = targetEvent ? dayNames[targetEvent.dayOfWeek - 1] : 'Piątek';
+
     const newAlert: ScheduleChangeAlert = {
       id: `alert-${Date.now()}`,
-      title: 'Zmiana sali: Maszynoznawstwo',
-      message: 'Wykład z Maszynoznawstwa w piątek o 15:30 został przeniesiony do sali s.1-44.',
-      courseName: 'Maszynoznawstwo',
-      oldValue: 's.A-I',
-      newValue: 's.1-44',
+      title: `Zmiana sali: ${course}`,
+      message: `Zajęcia z przedmiotu ${course} (${profile.rok} rok) w ${day} zostały przeniesione do sali ${newRoom}.`,
+      courseName: course,
+      oldValue: oldRoom,
+      newValue: newRoom,
       type: 'room_change',
       timestamp: 'Przed chwilą',
       read: false,
       severity: 'warning',
-      dateAffected: 'Piątek',
+      dateAffected: day,
+      rok: profile.rok,
     };
 
     setAlerts(prev => [newAlert, ...prev]);
@@ -229,6 +239,7 @@ export default function App() {
           onOpenCalendarSync={() => setIsCalendarModalOpen(true)}
           onOpenNotifications={() => setIsNotificationsModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onUpdateProfile={(p) => setProfile(p)}
         />
       </main>
 
@@ -280,6 +291,7 @@ export default function App() {
         isOpen={isNotificationsModalOpen}
         onClose={() => setIsNotificationsModalOpen(false)}
         alerts={alerts}
+        userRok={profile.rok}
         onMarkAsRead={(id) => {
           setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
         }}

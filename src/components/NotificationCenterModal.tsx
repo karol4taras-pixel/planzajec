@@ -7,6 +7,7 @@ interface NotificationCenterModalProps {
   isOpen: boolean;
   onClose: () => void;
   alerts: ScheduleChangeAlert[];
+  userRok?: number;
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead?: () => void;
   onClearAll: () => void;
@@ -17,6 +18,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   isOpen,
   onClose,
   alerts,
+  userRok,
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAll,
@@ -32,14 +34,16 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     const res = await requestNotificationPermission();
     setPermissionState(res);
     if (res === 'granted') {
-      sendBrowserNotification('Plan Meblarstwo SGGW', {
-        body: 'Powiadomienia o zmianach sal WNLiD są aktywne!',
+      sendBrowserNotification('Plan Meblarstwo WTD', {
+        body: 'Powiadomienia o zmianach sal WTD są aktywne!',
       });
       playNotificationSound();
     }
   };
 
-  const unreadCount = alerts.filter(a => !a.read).length;
+  // Filter alerts specifically for student's year or general faculty notices
+  const relevantAlerts = alerts.filter(a => a.rok === undefined || a.rok === userRok);
+  const unreadCount = relevantAlerts.filter(a => !a.read).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 overflow-y-auto">
@@ -57,7 +61,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-stone-400">Zmiany sal i harmonogramu WNLiD</p>
+              <p className="text-xs text-stone-400">Zmiany sal i harmonogramu WTD</p>
             </div>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-white p-1 rounded-lg">
@@ -106,12 +110,12 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
 
           {/* Alerts List */}
           <div className="space-y-2.5">
-            {alerts.length === 0 ? (
+            {relevantAlerts.length === 0 ? (
               <div className="py-8 text-center text-stone-500 text-xs">
-                Brak powiadomień. Harmonogram jest aktualny!
+                Brak powiadomień dla Twojego roku. Harmonogram jest aktualny!
               </div>
             ) : (
-              alerts.map((a) => (
+              relevantAlerts.map((a) => (
                 <div
                   key={a.id}
                   onClick={() => onMarkAsRead(a.id)}
