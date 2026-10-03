@@ -89,6 +89,128 @@ def _normalize_name(name: str) -> str:
     return name
 
 
+# --- WNLiD course & lecturer dictionary (canonical spellings) -------------
+# Recovers correct names from cells whose glyphs are letter-spaced in the source
+# PDF. Matching uses a "despaced" key (letters only), so artefacts like
+# "in żyn ierskie" or "ChemiaJ . Szadkowski" are handled robustly.
+COURSES = [
+    "Ochrona własności intelektualnej",
+    "Matematyka",
+    "Rysunek techniczny",
+    "Rysunek studyjny",
+    "Style w meblarstwie",
+    "Fizyka naturalnych materiałów włóknistych",
+    "Fizyka",
+    "Anatomia drewna",
+    "Grafika inżynierska w systemach CAD",
+    "Technologie informatyczne",
+    "Chemia",
+    "Metrologia techniczna i systemy pomiarowe",
+    "Termodynamika techniczna w meblarstwie",
+    "Termodynamika techniczna I",
+    "Mechanika techniczna I",
+    "Mechanika niszczenia materiałów",
+    "Tworzywa sztuczne i tkaniny",
+    "Maszynoznawstwo",
+    "Język obcy",
+    "Obrabiarki stosowane w meblarstwie II",
+    "Obrabiarki stosowane w meblarstwie",
+    "Ochrona środowiska w meblarstwie",
+    "Podstawy technologii tworzyw drzewnych",
+    "Konstrukcje i technologie mebli skrzyniowych",
+    "Ergonomia w meblarstwie",
+    "Ochrona materiałów drzewnych w meblarstwie",
+    "Hydrotermiczna i plastyczna obróbka drewna",
+    "Eksploatacja obrabiarek i narzędzi w produkcji mebli",
+    "Modyfikacja chemiczna drewna i metody ochrony",
+    "Tworzywa drzewne stosowane w meblarstwie",
+    "Techniczne przygotowanie produkcji w meblarstwie",
+    "Urządzenia transportowe w meblarstwie",
+    "Seminarium inżynierskie I",
+    "Seminarium inżynierskie",
+    "Podstawy projektowania w systemach CAD",
+]
+
+LECTURERS = [
+    "M.Niedbała", "J.Wachowicz", "R.Toczyłowska-Mamińska", "P.Czarniak",
+    "G.Koczan", "J.Biernacka", "T.Kłosińska", "J.Szadkowski", "M.Marchwicka",
+    "K.Roman", "M.Cyrankowski", "R.Auriga", "P.Mańkowski", "J.Górski",
+    "A.Jegorowa", "K.Szymanowski", "P.Borysiuk", "P.Beer", "A.Laskowska",
+    "I.Betlej", "E.Małachowska-Puchalska", "J.Wilkowski", "A.Antczak",
+    "D.Szadkowska", "S.Olek", "K.Kowaluk", "P.Boruszewski", "K.Krajewski",
+]
+
+
+_FOLD = str.maketrans("ąćęłńóśźż", "acelnoszz")
+
+
+def _nkey(s: str) -> str:
+    return re.sub(r"[^a-z]", "", (s or "").lower().translate(_FOLD))
+
+
+_COURSE_KEYS = sorted(((c, _nkey(c)) for c in COURSES), key=lambda t: -len(t[1]))
+_LECTURER_KEYS = [(l, _nkey(l)) for l in LECTURERS]
+
+
+def _match_courses(text: str):
+    """Return canonical course name(s) found in the despaced cell text.
+
+    Word-based: a course matches when all of its significant words (>=4 letters)
+    appear in the cell, so missing connectors ("w"/"i") or spacing artefacts are
+    tolerated. Longer (more specific) course titles win.
+    """
+    key = _nkey(text)
+    cands = []  # (score, position, canonical)
+    for canonical in COURSES:
+        words = [_nkey(w) for w in canonical.split() if len(_nkey(w)) >= 4]
+        if not words or not all(w in key for w in words):
+            continue
+        score = sum(len(w) for w in words)
+        # strong bonus when the full title (ignoring connectors/diacritics) is present
+        full = _nkey(canonical)
+        if full in key:
+            score += len(full) + 100
+        pos = min(key.find(w) for w in words)
+        cands.append((score, pos, canonical))
+    if not cands:
+        return None
+    if "lub" in text.lower():
+        # keep the two best distinct courses, ordered as they appear
+        best = sorted(cands, key=lambda c: -c[0])
+        picked, seen = [], set()
+        for sc, pos, c in best:
+            if c not in seen:
+                seen.add(c)
+                picked.append((pos, c))
+            if len(picked) == 2:
+                break
+        picked.sort()
+        if len(picked) >= 2:
+            return " lub ".join(c for _, c in picked)
+        return picked[0][1]
+    cands.sort(key=lambda c: (-c[0], c[1]))
+    return cands[0][2]
+
+
+def _match_lecturers(text: str):
+    key = _nkey(text)
+    found = []
+    for canonical, lkey in _LECTURER_KEYS:
+        if len(lkey) < 6:
+            continue
+        pos = key.find(lkey)
+        if pos >= 0:
+            found.append((pos, canonical))
+    found.sort()
+    seen, out = set(), []
+    for _, c in found:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return "/".join(out) if out else None
+
+
+
 def _split_cell(text: str, rok: int, dow: int):
     """Split raw cell text into structured class fields (best-effort)."""
     raw = text
@@ -142,6 +264,14 @@ def _split_cell(text: str, rok: int, dow: int):
         name = raw[:40]
     name = _normalize_name(name)
 
+    # Prefer canonical dictionary matches (robust against PDF letter-spacing)
+    dict_course = _match_courses(text)
+    if dict_course:
+        name = dict_course
+    dict_instr = _match_lecturers(text)
+    if dict_instr:
+        instr = dict_instr
+
     return {
         "courseName": name,
         "type": ctype,
@@ -166,15 +296,25 @@ def parse_pdf_bytes(pdf_bytes: bytes, rok: int):
         )
         if len(hdr) < 3:
             return [], {"error": "no-hour-header"}
-        a, b = np.polyfit(
-            [(w["x0"] + w["x1"]) / 2 for w in hdr],
-            [int(w["text"]) // 100 for w in hdr],
-            1,
-        )
+
+        # The grid columns are NOT uniform width, so a single linear scale mis-snaps
+        # some borders. Calibrate piecewise against each hour's real gridline:
+        # the hour gridline sits a small constant offset left of the label's x0.
+        all_borders = [x for x in _clusters([e["x0"] for e in p.vertical_edges], 5) if 95 < x < 760]
+        offs = []
+        for w in hdr:
+            near = [bx for bx in all_borders if abs(bx - w["x0"]) < 6]
+            if near:
+                offs.append(w["x0"] - min(near, key=lambda bx: abs(bx - w["x0"])))
+        off = float(np.median(offs)) if offs else 1.5
+        anchors = sorted((w["x0"] - off, int(w["text"]) // 100) for w in hdr)
+        anchor_x = [p0 for p0, _ in anchors]
+        anchor_h = [h for _, h in anchors]
 
         def to_time(x):
-            q = round((a * x + b) * 60 / 15) * 15
-            return f"{int(q // 60):02d}:{int(q % 60):02d}"
+            h = float(np.interp(x, anchor_x, anchor_h))
+            q = round(h * 4) / 4  # snap to 15 minutes
+            return f"{int(q):02d}:{int(round((q - int(q)) * 60)):02d}"
 
         # --- update date + turnus from text ---
         full_text = p.extract_text() or ""

@@ -34,6 +34,13 @@ Portal: https://wnlid.sggw.edu.pl/strefa-studenta/plan-zajec-i-programy-studiow/
 Rok1 MI_1_Z_*.pdf · Rok2 MII_3_Z_*.pdf · Rok3 MIII_5_Z_*.pdf · Rok4 MIV_7_Z_*.pdf
 
 ## Implemented (2026-10-03)
+- Piecewise-linear time calibration anchored to each hour's real gridline — fixes the
+  variable-width columns that previously mis-snapped borders (wrong times / missing breaks).
+  Every class now separated by its real 15-min break; starts like 08:15/09:15/14:15 correct.
+- WNLiD course + lecturer DICTIONARY with diacritic-insensitive "despaced" matching — recovers
+  canonical course names and instructor initials even when the PDF letter-spaces glyphs
+  (e.g. "in żyn ierskie" -> "Seminarium inżynierskie", "ChemiaJ . Szadkowski" -> instructor).
+  Handles "X lub Y" dual courses and II/III title variants.
 - Live deterministic PDF parsing of real timetables -> CORRECT class times (fixes wrong times).
 - 15-MINUTE RESOLUTION: parser keeps the quarter-hour grid (prev bug: merged 15-min rulings),
   so starts/ends land on :00/:15/:30/:45, 15-min breaks between classes show as gaps, and
