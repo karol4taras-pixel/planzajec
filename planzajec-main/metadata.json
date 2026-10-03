@@ -1,0 +1,6 @@
+{
+  "name": "Plan SGGW Drewno - Harmonogram & Zjazdy",
+  "description": "Mobilna aplikacja na Androida i iOS do sprawdzania planu zajęć WNLiD SGGW (Wydział Technologii Drewna), parser PDF, powiadomienia o zmianach sal w czasie rzeczywistym, harmonogram zjazdów i turnusów oraz synchronizacja z Kalendarzem Google.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

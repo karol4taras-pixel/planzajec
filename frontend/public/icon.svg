@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14532d" />
+      <stop offset="50%" stop-color="#166534" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="wood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#grad)" />
+  
+  <!-- Subtle wood texture rings in background -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#22c55e" stroke-opacity="0.15" stroke-width="8" stroke-dasharray="16 12"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#22c55e" stroke-opacity="0.2" stroke-width="6" stroke-dasharray="24 16"/>
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#22c55e" stroke-opacity="0.25" stroke-width="4"/>
+
+  <!-- Calendar Base -->
+  <rect x="116" y="140" width="280" height="250" rx="32" fill="#ffffff" filter="drop-shadow(0 14px 24px rgba(0,0,0,0.35))" />
+  
+  <!-- Calendar Header (Emerald Green) -->
+  <path d="M116 172 C116 154.3 130.3 140 148 140 L364 140 C381.7 140 396 154.3 396 172 L396 210 L116 210 Z" fill="#15803d" />
+  
+  <!-- Rings on top of calendar -->
+  <rect x="176" y="116" width="24" height="48" rx="12" fill="#dcfce7" stroke="#166534" stroke-width="4"/>
+  <rect x="312" y="116" width="24" height="48" rx="12" fill="#dcfce7" stroke="#166534" stroke-width="4"/>
+
+  <!-- Wood Grain & Leaf Motif inside Calendar Body -->
+  <g transform="translate(256, 305) scale(0.85)">
+    <!-- Tree / Wood Cross Section Symbol -->
+    <path d="M-60 40 L60 40 L45 10 L55 -10 L25 -40 L35 -55 L0 -90 L-35 -55 L-25 -40 L-55 -10 L-45 10 Z" fill="#15803d" />
+    <path d="M-8 40 L8 40 L8 60 L-8 60 Z" fill="#78350f" />
+    <!-- Clock hands badge -->
+    <circle cx="48" cy="-28" r="32" fill="#f59e0b" stroke="#ffffff" stroke-width="4"/>
+    <polyline points="48,-42 48,-28 60,-28" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- WTD / SGGW Label -->
+  <text x="256" y="186" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="#ffffff" letter-spacing="2">WTD • SGGW</text>
+</svg>
