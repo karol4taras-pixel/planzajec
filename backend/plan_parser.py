@@ -211,12 +211,15 @@ def parse_pdf_bytes(pdf_bytes: bytes, rok: int):
 
             interior = [h for h in hy if top + 3 < h < bot - 3]
             ve = [e for e in p.vertical_edges if e["top"] <= top + 3 and e["bottom"] >= bot - 3]
-            borders = [x for x in _clusters([e["x0"] for e in ve], 14) if 95 < x < 755]
+            # Keep 15-min resolution: only merge sub-pixel duplicate rulings (tol 5),
+            # so real 15-minute boundaries (~13px apart) are preserved. Empty columns
+            # between classes are the 15-minute breaks ("okienka").
+            borders = [x for x in _clusters([e["x0"] for e in ve], 5) if 95 < x < 758]
             if len(borders) < 2:
                 continue
 
             for L, R in zip(borders, borders[1:]):
-                if R - L < 22:
+                if R - L < 10:
                     continue
                 # horizontal split lines that actually cross this time column
                 sp = [h for h in interior

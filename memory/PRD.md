@@ -35,6 +35,9 @@ Rok1 MI_1_Z_*.pdf · Rok2 MII_3_Z_*.pdf · Rok3 MIII_5_Z_*.pdf · Rok4 MIV_7_Z_*
 
 ## Implemented (2026-10-03)
 - Live deterministic PDF parsing of real timetables -> CORRECT class times (fixes wrong times).
+- 15-MINUTE RESOLUTION: parser keeps the quarter-hour grid (prev bug: merged 15-min rulings),
+  so starts/ends land on :00/:15/:30/:45, 15-min breaks between classes show as gaps, and
+  classes that start 15 min earlier (08:15, 14:15, 15:15, 17:15...) are correct.
 - "Odśwież" now re-downloads + re-parses the live PDF and REPLACES the shown schedule; detects
   version change via content hash + embedded "aktualizacja DD.MM.YYYY" date.
 - App auto-fetches the freshest plan on load and on year change (localStorage cache fallback).
